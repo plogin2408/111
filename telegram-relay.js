@@ -30,12 +30,13 @@ ${issue.summary}
     for (const chat of CHATS) {
 
       await axios.post(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          chat_id: chat,
-          text: text
-        }
-      );
+  `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+  {
+    chat_id: chat,
+    text: text,
+    parse_mode: "Markdown"
+  }
+)
 
     }
 
