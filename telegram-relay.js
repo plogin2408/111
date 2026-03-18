@@ -32,9 +32,6 @@ ${issue.url}`;
         {
           chat_id: chat,
           text: text
-        },
-        {
-          httpsAgent: proxyAgent
         }
       );
 
