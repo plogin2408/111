@@ -23,11 +23,13 @@ app.post("/youtrack", async (req, res) => {
       return res.status(400).send("No issue data");
     }
 
-    const issueId =
-      issue.idReadable ||
-      issue.id ||
-      issue.key ||
-      "UNKNOWN";
+    // извлекаем номер тикета из URL
+    let issueId = "UNKNOWN";
+
+    if (issue.url) {
+      const parts = issue.url.split("/");
+      issueId = parts[parts.length - 1];
+    }
 
     const text =
 `🆕 *Новый тикет*
