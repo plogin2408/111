@@ -1,0 +1,13 @@
+{
+  "name": "telegram-relay",
+  "version": "1.0.0",
+  "main": "telegram-relay.js",
+  "scripts": {
+    "start": "node telegram-relay.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "https-proxy-agent": "^7.0.2"
+  }
+}
