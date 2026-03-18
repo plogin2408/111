@@ -12,8 +12,6 @@ const CHATS = [
   -1001987406047
 ];
 
-const proxyAgent = new HttpsProxyAgent("http://proxy.dd:3128");
-
 app.post("/youtrack", async (req, res) => {
 
   try {
