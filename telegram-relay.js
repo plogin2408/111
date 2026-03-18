@@ -18,12 +18,14 @@ app.post("/youtrack", async (req, res) => {
     const issue = req.body.issue;
 
     const text =
-`🆕 Новый тикет
+`🆕 *Новый тикет*
 
-${issue.id}
+*${issue.idReadable}*
 ${issue.summary}
 
-${issue.url}`;
+📂 Тип: ${issue.xtype || "—"}
+
+🔗 ${issue.url}`;
 
     for (const chat of CHATS) {
 
