@@ -28,7 +28,7 @@ app.post("/youtrack", async (req, res) => {
     const text =
 `🆕 *Новый тикет*
 
-*${issue.id}*
+*${issue.idReadable}*
 ${issue.summary}
 
 📂 Тип: ${issue.xtype || "—"}
