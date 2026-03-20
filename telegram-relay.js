@@ -11,30 +11,30 @@ const CHATS = [
   -1001987406047
 ];
 
-// ----------- utils -----------
+// ---------- utils ----------
 
 function escapeMarkdown(text) {
   if (!text) return "";
-  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+  return text.replace(/([_*\[\]()~`>#+=|{}.!])/g, '\\$1');
+  // ❗ убрали "-" из экранирования
 }
 
-async function sendMessage(payload) {
+async function sendMessage(buildPayload) {
   for (const chat of CHATS) {
 
-    // retry 3 раза
     for (let i = 0; i < 3; i++) {
       try {
 
         await axios.post(
           `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-          payload(chat)
+          buildPayload(chat)
         );
 
         break;
 
       } catch (e) {
 
-        console.log(`Retry ${i + 1} failed`);
+        console.log(`Retry ${i + 1}`);
 
         if (i === 2) {
           console.error("Telegram error:", e.response?.data || e.message);
@@ -47,13 +47,13 @@ async function sendMessage(payload) {
   }
 }
 
-function getIssueIdFromUrl(url) {
+function getIssueId(url) {
   if (!url) return "UNKNOWN";
   const parts = url.split("/");
   return parts[parts.length - 1];
 }
 
-// ----------- новый тикет -----------
+// ---------- новый тикет ----------
 
 app.post("/youtrack", async (req, res) => {
 
@@ -62,15 +62,12 @@ app.post("/youtrack", async (req, res) => {
     console.log("New issue:", JSON.stringify(req.body));
 
     const issue = req.body.issue;
+    if (!issue) return res.status(400).send("No issue");
 
-    if (!issue) {
-      return res.status(400).send("No issue data");
-    }
-
-    const issueId = getIssueIdFromUrl(issue.url);
+    const issueId = getIssueId(issue.url);
 
     const text =
-`🆕 *${escapeMarkdown(issueId)}*
+`🆕 *${issueId}*
 
 ${escapeMarkdown(issue.summary)}
 
@@ -78,7 +75,7 @@ ${escapeMarkdown(issue.summary)}
 
     await sendMessage(chat => ({
       chat_id: chat,
-      text: text,
+      text,
       parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [[
@@ -101,7 +98,7 @@ ${escapeMarkdown(issue.summary)}
 
 });
 
-// ----------- новый комментарий -----------
+// ---------- новый комментарий ----------
 
 app.post("/youtrack-comment", async (req, res) => {
 
@@ -110,12 +107,9 @@ app.post("/youtrack-comment", async (req, res) => {
     console.log("New comment:", JSON.stringify(req.body));
 
     const comment = req.body.comment;
+    if (!comment) return res.status(400).send("No comment");
 
-    if (!comment) {
-      return res.status(400).send("No comment data");
-    }
-
-    const issueId = getIssueIdFromUrl(comment.issueUrl);
+    const issueId = getIssueId(comment.issueUrl);
 
     let textComment = comment.text || "";
 
@@ -124,7 +118,7 @@ app.post("/youtrack-comment", async (req, res) => {
     }
 
     const text =
-`💬 *${escapeMarkdown(issueId)}*
+`💬 *${issueId}*
 
 ${escapeMarkdown(comment.issueSummary)}
 
@@ -134,7 +128,7 @@ ${escapeMarkdown(textComment)}`;
 
     await sendMessage(chat => ({
       chat_id: chat,
-      text: text,
+      text,
       parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [[
@@ -157,13 +151,11 @@ ${escapeMarkdown(textComment)}`;
 
 });
 
-
-// ----------- health check -----------
+// ---------- health check ----------
 
 app.get("/", (req, res) => {
   res.send("OK");
 });
-
 
 app.listen(process.env.PORT || 3000, () => {
   console.log("Telegram relay started");
