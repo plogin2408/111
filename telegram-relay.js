@@ -11,7 +11,49 @@ const CHATS = [
   -1001987406047
 ];
 
-// ---------- Новый тикет ----------
+// ----------- utils -----------
+
+function escapeMarkdown(text) {
+  if (!text) return "";
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
+
+async function sendMessage(payload) {
+  for (const chat of CHATS) {
+
+    // retry 3 раза
+    for (let i = 0; i < 3; i++) {
+      try {
+
+        await axios.post(
+          `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+          payload(chat)
+        );
+
+        break;
+
+      } catch (e) {
+
+        console.log(`Retry ${i + 1} failed`);
+
+        if (i === 2) {
+          console.error("Telegram error:", e.response?.data || e.message);
+        }
+
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+  }
+}
+
+function getIssueIdFromUrl(url) {
+  if (!url) return "UNKNOWN";
+  const parts = url.split("/");
+  return parts[parts.length - 1];
+}
+
+// ----------- новый тикет -----------
 
 app.post("/youtrack", async (req, res) => {
 
@@ -25,35 +67,28 @@ app.post("/youtrack", async (req, res) => {
       return res.status(400).send("No issue data");
     }
 
-    let issueId = "UNKNOWN";
-
-    if (issue.url) {
-      const parts = issue.url.split("/");
-      issueId = parts[parts.length - 1];
-    }
+    const issueId = getIssueIdFromUrl(issue.url);
 
     const text =
-`🆕 *Новый тикет*
+`🆕 *${escapeMarkdown(issueId)}*
 
-*${issueId}*
-${issue.summary || ""}
+${escapeMarkdown(issue.summary)}
 
-📂 Тип: ${issue.xtype || "—"}
+📂 ${escapeMarkdown(issue.xtype || "—")}`;
 
-🔗 ${issue.url || ""}`;
-
-    for (const chat of CHATS) {
-
-      await axios.post(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          chat_id: chat,
-          text: text,
-          parse_mode: "Markdown"
-        }
-      );
-
-    }
+    await sendMessage(chat => ({
+      chat_id: chat,
+      text: text,
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: "🔗 Открыть тикет",
+            url: issue.url
+          }
+        ]]
+      }
+    }));
 
     res.send("ok");
 
@@ -66,8 +101,7 @@ ${issue.summary || ""}
 
 });
 
-
-// ---------- Новый комментарий ----------
+// ----------- новый комментарий -----------
 
 app.post("/youtrack-comment", async (req, res) => {
 
@@ -81,44 +115,36 @@ app.post("/youtrack-comment", async (req, res) => {
       return res.status(400).send("No comment data");
     }
 
-    let issueId = "UNKNOWN";
-
-    if (comment.issueUrl) {
-      const parts = comment.issueUrl.split("/");
-      issueId = parts[parts.length - 1];
-    }
+    const issueId = getIssueIdFromUrl(comment.issueUrl);
 
     let textComment = comment.text || "";
 
-    // обрезаем длинные комментарии
     if (textComment.length > 500) {
       textComment = textComment.substring(0, 500) + "...";
     }
 
     const text =
-`💬 *Новый комментарий*
+`💬 *${escapeMarkdown(issueId)}*
 
-*${issueId}*
-${comment.issueSummary || ""}
+${escapeMarkdown(comment.issueSummary)}
 
-👤 ${comment.author || ""}
+👤 ${escapeMarkdown(comment.author)}
 
-${textComment}
+${escapeMarkdown(textComment)}`;
 
-🔗 ${comment.issueUrl || ""}`;
-
-    for (const chat of CHATS) {
-
-      await axios.post(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          chat_id: chat,
-          text: text,
-          parse_mode: "Markdown"
-        }
-      );
-
-    }
+    await sendMessage(chat => ({
+      chat_id: chat,
+      text: text,
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: "🔗 Открыть тикет",
+            url: comment.issueUrl
+          }
+        ]]
+      }
+    }));
 
     res.send("ok");
 
@@ -129,6 +155,13 @@ ${textComment}
 
   }
 
+});
+
+
+// ----------- health check -----------
+
+app.get("/", (req, res) => {
+  res.send("OK");
 });
 
 
