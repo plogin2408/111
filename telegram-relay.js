@@ -13,12 +13,6 @@ const CHATS = [
 
 // ---------- utils ----------
 
-function escapeMarkdown(text) {
-  if (!text) return "";
-  return text.replace(/([_*\[\]()~`>#+=|{}.!])/g, '\\$1');
-  // ❗ убрали "-" из экранирования
-}
-
 async function sendMessage(buildPayload) {
   for (const chat of CHATS) {
 
@@ -67,16 +61,15 @@ app.post("/youtrack", async (req, res) => {
     const issueId = getIssueId(issue.url);
 
     const text =
-`🆕 *${issueId}*
+`🆕 ${issueId}
 
-${escapeMarkdown(issue.summary)}
+${issue.summary || ""}
 
-📂 ${escapeMarkdown(issue.xtype || "—")}`;
+📂 ${issue.xtype || "—"}`;
 
     await sendMessage(chat => ({
       chat_id: chat,
       text,
-      parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [[
           {
@@ -109,54 +102,4 @@ app.post("/youtrack-comment", async (req, res) => {
     const comment = req.body.comment;
     if (!comment) return res.status(400).send("No comment");
 
-    const issueId = getIssueId(comment.issueUrl);
-
-    let textComment = comment.text || "";
-
-    if (textComment.length > 500) {
-      textComment = textComment.substring(0, 500) + "...";
-    }
-
-    const text =
-`💬 *${issueId}*
-
-${escapeMarkdown(comment.issueSummary)}
-
-👤 ${escapeMarkdown(comment.author)}
-
-${escapeMarkdown(textComment)}`;
-
-    await sendMessage(chat => ({
-      chat_id: chat,
-      text,
-      parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [[
-          {
-            text: "🔗 Открыть тикет",
-            url: comment.issueUrl
-          }
-        ]]
-      }
-    }));
-
-    res.send("ok");
-
-  } catch (err) {
-
-    console.error("Comment error:", err);
-    res.status(500).send("error");
-
-  }
-
-});
-
-// ---------- health check ----------
-
-app.get("/", (req, res) => {
-  res.send("OK");
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Telegram relay started");
-});
+    const issueId = getIssue
